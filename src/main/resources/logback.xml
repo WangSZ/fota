@@ -1,0 +1,93 @@
+<configuration>
+  <property name="log.filePath" value="./logs"/>
+  <property name="app.name" value="fota"/>
+  <property name="log.pattern"
+            value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} -%msg%n"/>
+
+  <appender name="ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${log.filePath}/${app.name}.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${log.filePath}/${app.name}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>100MB</maxFileSize>
+      <maxHistory>60</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder  class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="ch.qos.logback.classic.PatternLayout">
+        <pattern>${log.pattern}</pattern>
+      </layout>
+      <charset>UTF-8</charset>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>ERROR</level>
+      <onMatch>DENY</onMatch>
+      <onMismatch>ACCEPT</onMismatch>
+    </filter>
+  </appender>
+
+  <appender name="ROLLING_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${log.filePath}/${app.name}.error.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${log.filePath}/${app.name}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>100MB</maxFileSize>
+      <maxHistory>60</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <!-- 过滤器（仅保留info优先级的日志信息） -->
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>ERROR</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder  class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="ch.qos.logback.classic.PatternLayout">
+        <pattern>${log.pattern}</pattern>
+      </layout>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder  class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="ch.qos.logback.classic.PatternLayout">
+        <pattern>${log.pattern}</pattern>
+      </layout>
+      <charset>UTF-8</charset>
+    </encoder>
+  </appender>
+
+
+
+  <appender name="ASYNC_STDOUT" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="STDOUT" />
+    <queueSize>10000</queueSize>
+    <neverBlock>true</neverBlock>
+    <discardingThreshold>10</discardingThreshold>
+  </appender>
+
+  <appender name="ASYNC_ROLLING" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="ROLLING" />
+    <queueSize>10000</queueSize>
+    <neverBlock>true</neverBlock>
+    <discardingThreshold>10</discardingThreshold>
+  </appender>
+  <appender name="ASYNC_ROLLING_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+    <appender-ref ref="ROLLING_ERROR" />
+    <queueSize>10000</queueSize>
+    <neverBlock>true</neverBlock>
+    <discardingThreshold>10</discardingThreshold>
+  </appender>
+
+  <root level="info">
+    <appender-ref ref="ASYNC_STDOUT" />
+    <appender-ref ref="ASYNC_ROLLING" />
+    <appender-ref ref="ASYNC_ROLLING_ERROR" />
+  </root>
+
+<!--  <logger name="io.vertx.core.net.impl.ConnectionBase" level="OFF" additivity="true">-->
+<!--  </logger>-->
+<!--    <logger name="com.wszd.fota.webdav" level="debug" additivity="true">-->
+<!--    </logger>-->
+
+
+</configuration>
