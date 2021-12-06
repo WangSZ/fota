@@ -18,8 +18,7 @@ public class UnlLockMethod implements WebDavMethod{
 
   @Override
   public void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
-
     // TODO
-    responseSuccess(webDavResponse,responseEndHandler);
+    ok(webDavResponse).onComplete(responseEndHandler);
   }
 }

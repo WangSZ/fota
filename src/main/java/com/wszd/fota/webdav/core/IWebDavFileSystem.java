@@ -13,6 +13,10 @@ import java.util.List;
  * @author p14
  */
 public interface IWebDavFileSystem {
+  /**
+   * 返回唯一的名字
+   * @return
+   */
   String name();
   /**
    * 初始化文件系统，包括创建目录、连接等。
@@ -118,4 +122,5 @@ public interface IWebDavFileSystem {
    * @return
    */
   Future<Void> updateProperties(Vertx vertx, String webDavPath, Propertyupdate propertyupdate);
+
 }

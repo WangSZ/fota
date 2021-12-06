@@ -20,7 +20,8 @@ public class MkColMethod implements WebDavMethod {
   @Override
   public void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
     log.debug("MKCOL from {}",webDavRequest.getWebDavPath());
-    getFileSystem(webDavEngine, webDavRequest).makeDirectory(webDavRequest.getVertx(),webDavRequest.getWebDavPath()).onComplete(responseEndHandler);
-
+    getFileSystem(webDavEngine, webDavRequest)
+      .makeDirectory(webDavRequest.getVertx(),webDavRequest.getWebDavPath())
+      .onComplete(responseEndHandler);
   }
 }

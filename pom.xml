@@ -22,7 +22,7 @@
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
 
     <main.verticle>com.wszd.fota.FotaVerticle</main.verticle>
-    <launcher.class>io.vertx.core.Launcher</launcher.class>
+    <launcher.class>com.wszd.fota.FotaLauncher</launcher.class>
   </properties>
 
   <dependencyManagement>
@@ -42,6 +42,11 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-auth-htdigest</artifactId>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
     <dependency>
       <groupId>org.slf4j</groupId>

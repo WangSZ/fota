@@ -1,5 +1,7 @@
-package com.wszd.fota.webdav.core;
+package com.wszd.fota.webdav.filesystem;
 
+import com.wszd.fota.webdav.core.FileObject;
+import com.wszd.fota.webdav.core.WebDavFileSystemRegistry;
 import com.wszd.fota.xml.dav.Propertyupdate;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -14,11 +16,16 @@ import java.util.List;
  */
 public interface IBlockingWebDavFileSystem{
   /**
+   * 返回唯一的名字
+   * @return
+   */
+  String name();
+  /**
    * 初始化文件系统，包括创建目录、连接等。
    * @param vertx
    * @return
    */
-  void init(Vertx vertx, JsonObject config,WebDavFileSystemRegistry registry);
+  void init(Vertx vertx, JsonObject config, WebDavFileSystemRegistry registry);
 
   /**
    * 获取 FileObject 对象

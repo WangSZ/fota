@@ -17,7 +17,7 @@ import java.util.ArrayList;
  * @author p14
  */
 @Slf4j
-public class PropPatchMethod extends AbstractWebDavMethodWithResponse{
+public class PropPatchMethod implements WebDavMethod{
   @Override
   public String getMethodName() {
     return "PROPPATCH";
@@ -25,34 +25,29 @@ public class PropPatchMethod extends AbstractWebDavMethodWithResponse{
 
   @Override
   public void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
-    webDavRequest.getRequest().body().map(buffer -> {
+    webDavRequest.getRequest().body().compose(buffer -> {
       String body = buffer.toString();
-      log.debug(" patch {}",body);
+      log.debug(" patch [{}]",body);
       Object obj = XmlUtil.xmlToObject(body, Propertyupdate.class);
       if(obj instanceof Propertyupdate){
         Propertyupdate propertyupdate = (Propertyupdate) obj;
         IWebDavFileSystem fileSystem = getFileSystem(webDavEngine, webDavRequest);
-        fileSystem.updateProperties(webDavRequest.getVertx(),webDavRequest.getWebDavPath(),propertyupdate)
-          .onSuccess(event -> {
-            withXmlResponse(webDavResponse);
+        return fileSystem.updateProperties(webDavRequest.getVertx(),webDavRequest.getWebDavPath(),propertyupdate)
+          .compose(event -> {
             MultiStatus multiStatus=new MultiStatus();
             multiStatus.setResponseList(new ArrayList<>());
             Response r = new Response();
             multiStatus.getResponseList().add(r);
-            r.setHref(Response.encodeHref(webDavRequest.getWebDavPath()));
+            r.setHref(Response.encodeHref(webDavResponse.getWebDavRoot(),webDavRequest.getWebDavPath()));
             r.setPropStat(new PropStat(propertyupdate.getSet().getProp()));
             r.getPropStat().setStatus(XML_STATUS_OK);
-            String bodyResponse=XmlUtil.objectToXml(multiStatus, Win32Prop.class);
-            log.debug("response body {}",bodyResponse);
-            webDavResponse.withStatus(HttpResponseStatus.MULTI_STATUS.code());
-            writeToResponseWithLength(bodyResponse,webDavRequest,webDavResponse,responseEndHandler);
-          })
-          .onComplete(responseEndHandler);
+
+            withXmlResponse(webDavResponse);
+            return writeToResponse(XmlUtil.objectToXml(multiStatus, Win32Prop.class),webDavResponse.withStatus(HttpResponseStatus.MULTI_STATUS.code()));
+          });
       }else {
-        responseBadRequest(webDavResponse,responseEndHandler);
-        return null;
+        return badRequest(webDavRequest,webDavResponse);
       }
-      return null;
-    });
+    }).onComplete(responseEndHandler);
   }
 }

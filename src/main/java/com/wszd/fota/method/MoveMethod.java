@@ -25,7 +25,7 @@ public class MoveMethod implements WebDavMethod {
   @Override
   public void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
     boolean overwrite=isOverwrite(webDavRequest.getRequest());
-    String targetLocation= URI.create(getDestination(webDavRequest.getRequest())).getPath();
+    String targetLocation= URI.create(getDestination(webDavRequest.getRequest())).getPath().substring(webDavResponse.getWebDavRoot().length());
     log.debug("move from {} to {}",webDavRequest.getWebDavPath(),targetLocation);
 
     Future<Void> moveFuture ;
@@ -34,10 +34,10 @@ public class MoveMethod implements WebDavMethod {
     } else {
       moveFuture=getFileSystem(webDavEngine, webDavRequest).moveFile(webDavRequest.getVertx(), webDavRequest.getWebDavPath(), targetLocation,overwrite);
     }
-    // TODO move失败处理？
-    moveFuture.onSuccess(event -> {
-      webDavResponse.setHeader(WebDavResponseHeader.LOCATION,targetLocation);
-      webDavResponse.setStatus(HttpResponseStatus.CREATED.code());
+    moveFuture.compose(event -> {
+      webDavResponse.withHeader(WebDavResponseHeader.LOCATION,targetLocation);
+      webDavResponse.withStatus(HttpResponseStatus.CREATED.code());
+      return writeToResponse(null,webDavResponse);
     }).onComplete(responseEndHandler);
   }
 }

@@ -4,7 +4,7 @@
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="io.vertx.core.Launcher" />
     <module name="fota" />
-    <option name="PROGRAM_PARAMETERS" value="run com.wszd.fota.FotaVerticle --redeploy=&quot;src/**/*.java&quot; --launcher-class=io.vertx.core.Launcher  -conf ./src/main/resources/config.json" />
+    <option name="PROGRAM_PARAMETERS" value="run com.wszd.fota.FotaVerticle --redeploy=&quot;src/**/*.java&quot; --launcher-class=io.vertx.core.Launcher -conf ./src/main/resources/config.json" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

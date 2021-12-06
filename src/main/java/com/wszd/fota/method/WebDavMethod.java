@@ -10,6 +10,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileNotFoundException;
 
@@ -17,23 +19,66 @@ import java.io.FileNotFoundException;
  * @author p14
  */
 public interface WebDavMethod {
+  Logger log=LoggerFactory.getLogger(WebDavMethod.class);
   String getMethodName();
 
   void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler);
 
+  default Future<Void> writeToResponse(String body,WebDavResponse webDavResponse) {
+    return writeToResponse(body,webDavResponse,true);
+  }
+
+  default Future<Void> writeOKToResponse(String body, WebDavResponse webDavResponse) {
+    return writeToResponse(body,webDavResponse.withStatus(HttpResponseStatus.OK.code()));
+  }
+
+  default Future<Void> ok(WebDavResponse webDavResponse) {
+    return writeToResponse(null,webDavResponse.withStatus(HttpResponseStatus.OK.code()),false);
+  }
+
+
+  default Future<Void> writeToResponse(String body,WebDavResponse webDavResponse,boolean chucked) {
+    int length=-1;
+    if(body!=null){
+      length=body.length();
+    }
+    log.debug("response chucked[{}] body({}) {}",chucked,length,body);
+    if(chucked){
+      webDavResponse.getResponse().setChunked(true);
+    }else {
+      webDavResponse.withContentLength(Math.max(0,length));
+    }
+    webDavResponse.getResponse().setStatusCode(webDavResponse.ensureStatus().getStatus());
+    webDavResponse.getResponse().setStatusMessage(webDavResponse.ensureMessage().getStatusMessage());
+    if(body!=null){
+      return webDavResponse.getResponse().end(body);
+    }else {
+      return webDavResponse.getResponse().end();
+    }
+  }
+
+  default Future<Void> notFound(WebDavRequest webDavRequest, WebDavResponse webDavResponse) {
+    return writeToResponse(page404,webDavResponse.withStatus(HttpResponseStatus.NOT_FOUND.code()));
+  }
+
+  default Future<Void> badRequest(WebDavRequest webDavRequest, WebDavResponse webDavResponse) {
+    return writeToResponse(page404,webDavResponse.withStatus(HttpResponseStatus.BAD_REQUEST.code()));
+  }
+
+  default Future<Void> error(WebDavRequest webDavRequest, WebDavResponse webDavResponse,Throwable t) {
+    if(t instanceof FileNotFoundException){
+      webDavResponse.withStatus(HttpResponseStatus.NOT_FOUND.code());
+      return notFound(webDavRequest,webDavResponse);
+    }
+    return Future.failedFuture(t);
+  }
+
   default void withXmlResponse(WebDavResponse webDavResponse){
-    webDavResponse.setHeader(WebDavResponseHeader.CONTENT_TYPE, WebDavResponseHeader.CONTENT_TYPE_XML_UTF8);
+    webDavResponse.withHeader(WebDavResponseHeader.CONTENT_TYPE, WebDavResponseHeader.CONTENT_TYPE_XML_UTF8);
   }
 
   default void withHtmlResponse(WebDavResponse webDavResponse){
-    webDavResponse.setHeader(WebDavResponseHeader.CONTENT_TYPE, WebDavResponseHeader.CONTENT_TYPE_HTML_UTF8);
-  }
-
-  default void fileNotFound(WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
-    webDavResponse.withContentLength(page404.length());
-    webDavResponse.withStatus(HttpResponseStatus.NOT_FOUND.code());
-    webDavResponse.getResponse().end(page404);
-    responseEndHandler.handle(Future.succeededFuture());
+    webDavResponse.withHeader(WebDavResponseHeader.CONTENT_TYPE, WebDavResponseHeader.CONTENT_TYPE_HTML_UTF8);
   }
 
   default IWebDavFileSystem getFileSystem(WebDavEngine webDavEngine, WebDavRequest webDavRequest){
@@ -78,40 +123,6 @@ public interface WebDavMethod {
    */
   default String getDestination(HttpServerRequest request){
     return request.getHeader(WebDavRequestHeader.DESTINATION);
-  }
-
-
-  default void responseSuccess(WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler){
-    if(webDavResponse.getStatus()==0){
-      webDavResponse.setStatus(HttpResponseStatus.OK.code());
-    }
-    responseEndHandler.handle(Future.succeededFuture());
-  }
-
-  default void responseError(WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler,Throwable t){
-    if(t instanceof FileNotFoundException){
-      webDavResponse.setStatus(HttpResponseStatus.NOT_FOUND.code());
-    }else {
-
-      if(webDavResponse.getStatus()==0){
-        webDavResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR.code());
-      }
-    }
-    responseEndHandler.handle(Future.failedFuture(t));
-  }
-
-  default void responseError(WebDavResponse webDavResponse,int httpCode, Handler<AsyncResult<Void>> responseEndHandler){
-    if(webDavResponse.getStatus()==0){
-      webDavResponse.setStatus(httpCode);
-    }
-    responseEndHandler.handle(Future.succeededFuture());
-  }
-
-  default void responseBadRequest(WebDavResponse webDavResponse,Handler<AsyncResult<Void>> responseEndHandler){
-    if(webDavResponse.getStatus()==0){
-      webDavResponse.setStatus(HttpResponseStatus.BAD_REQUEST.code());
-    }
-    responseEndHandler.handle(Future.succeededFuture());
   }
 
   /**

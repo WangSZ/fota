@@ -18,8 +18,8 @@ public class Response {
   @XmlElement(name = "propstat" )
   private PropStat propStat;
 
-  public static final String encodeHref(String href){
-    return URLUtil.encodeWholeUrl(href);
+  public static final String encodeHref(String rootPath,String href){
+    return URLUtil.encodeWholeUrl(rootPath+href);
   }
 
 }

@@ -6,6 +6,7 @@ import com.wszd.fota.webdav.core.WebDavFileSystemRegistry;
 import com.wszd.fota.xml.dav.Propertyupdate;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.WorkerExecutor;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.OpenOptions;
@@ -18,58 +19,84 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
+ * 本地文件系统
  * @author p14
  */
 @Slf4j
 public class LocalFileSystem implements IWebDavFileSystem {
   private JsonObject config;
   private String name;
+  private Vertx vertx;
+  private WorkerExecutor worker;
+
+  private String fileSystemRoot;
   @Override
   public String name() {
     return name;
   }
 
   @Override
-  public Future<Void> init(Vertx vertx, JsonObject config, WebDavFileSystemRegistry registry){
-    this.config=config;
-    this.name=config.getString("name",this.toString());
-    File f = new File(config.getString("root","."));
-    if(!f.exists()){
-      throw new IllegalStateException("root directory not exist"+root);
-    }
-    log.debug("root {} directory is {}",root,f.getAbsolutePath());
-    this.root =f.getAbsolutePath() ;
-    return Future.succeededFuture();
+  public String toString() {
+    return "LocalFileSystem{" +
+      "name='" + name + '\'' +
+      ", fileSystemRoot='" + fileSystemRoot + '\'' +
+      '}';
   }
 
-  private String root;
+  @Override
+  public Future<Void> init(Vertx vertx, JsonObject config, WebDavFileSystemRegistry registry){
+    this.config=config;
+    this.vertx=vertx;
+    this.name=config.getString("name",this.toString());
+    File f = new File(config.getString("root"));
+    if(!f.exists()){
+      throw new IllegalStateException("root directory not exist"+ fileSystemRoot);
+    }
+    log.debug("root {} directory is {}",config.getString("root"),f.getAbsolutePath());
+    this.fileSystemRoot =f.getAbsolutePath() ;
+    worker = vertx.createSharedWorkerExecutor(config.getString("worker.name","local-bio"),Integer.parseInt(config.getString("worker.size", ""+20 * Runtime.getRuntime().availableProcessors())),2000,TimeUnit.MILLISECONDS);
+    return Future.succeededFuture();
+  }
   /**
    * TODO ignoreFile 改为可配置
    */
-  private HashSet<String> ignoreFile=new HashSet<>(Arrays.asList("System Volume Information"));
+  private HashSet<String> ignoreFile=new HashSet<>(Arrays.asList("System Volume Information","@Recycle","@Recently-Snapshot",".syncing_db"));
 
   public LocalFileSystem() {
   }
 
   @Override
   public Future<FileObject> getFileObject(String webDavPath) {
-    log.debug("getFileObject {}",webDavPath);
-    File file=new File(getPathOnFileSystem(webDavPath));
-    FileObject f = FileObject.newObjectFromFile(webDavPath, file);
-    log.debug("FileObject {}",f);
-    return Future.succeededFuture(f);
+    return worker.executeBlocking(promise->{
+      try{
+        log.debug("getFileObject {}",webDavPath);
+        File file=new File(getPathOnFileSystem(webDavPath));
+        FileObject f = FileObject.newObjectFromFile(webDavPath, file);
+        log.debug("FileObject {}",f);
+        promise.complete(f);
+      }catch (Throwable t){
+        promise.fail(t);
+      }
+    },false);
   }
 
   @Override
   public Future<List<FileObject>> listFile(String webDavPath, int depth) {
-    log.debug("listFile webDavPath= {} ,depth={}",webDavPath,depth);
-    String pathOnFileSystem=getPathOnFileSystem(webDavPath);
-    log.debug("listFile webDavPath= {} ,pathOnFileSystem={} ,depth={}",webDavPath,pathOnFileSystem,depth);
-    List<FileObject> arr=new ArrayList<>();
-    listFiles(webDavPath,arr,new File(pathOnFileSystem),0,depth);
-    return Future.succeededFuture(arr);
+    return worker.executeBlocking(promise->{
+      try{
+        List<FileObject> arr=new ArrayList<>();
+        log.debug("listFile webDavPath= {} ,depth={}",webDavPath,depth);
+        String pathOnFileSystem=getPathOnFileSystem(webDavPath);
+        log.debug("listFile webDavPath= {} ,pathOnFileSystem={} ,depth={}",webDavPath,pathOnFileSystem,depth);
+        listFiles(webDavPath,arr,new File(pathOnFileSystem),0,depth);
+        promise.complete(arr);
+      }catch (Throwable t){
+        promise.fail(t);
+      }
+    },false);
   }
 
 
@@ -77,14 +104,16 @@ public class LocalFileSystem implements IWebDavFileSystem {
     if(currentDepth>maxDepth){
       return;
     }
-    if(!file.canRead()){
-      log.debug("can not read file {} {}",currentWebDavPath,file);
-      return;
-    }
-    if(file.isHidden()){
-      log.debug("skip hidden file {} {}",currentWebDavPath,file);
-      return;
-    }
+    // 对于远程文件执行 canRead 非常慢，暂不做检测 TODO
+//    if(!file.canRead()){
+//      log.debug("can not read file {} {}",currentWebDavPath,file);
+//      return;
+//    }
+    // 对于远程文件执行 isHidden 非常慢，暂不做检测 TODO
+//    if(!".".equals(file.getName()) && file.isHidden()){
+//      log.debug("skip hidden file {} {}",currentWebDavPath,file);
+//      return;
+//    }
     if(ignoreFile.contains(file.getName())){
       log.debug("ignore read file {} {}",currentWebDavPath,file);
       return;
@@ -129,7 +158,7 @@ public class LocalFileSystem implements IWebDavFileSystem {
       // TODO 怎么防御遍历目录？
       throw new IllegalArgumentException("path error "+webDavPath);
     }
-    return root+webDavPath;
+    return fileSystemRoot +webDavPath;
   }
 
   @Override

@@ -17,8 +17,8 @@ public class OptionsMethod implements WebDavMethod{
 
   @Override
   public void handle(WebDavEngine webDavEngine, WebDavRequest webDavRequest, WebDavResponse webDavResponse, Handler<AsyncResult<Void>> responseEndHandler) {
-    webDavResponse.setHeader("DAV","1");
+    webDavResponse.withHeader("DAV","1");
     // TODO 支持 2
-    responseSuccess(webDavResponse,responseEndHandler);
+    ok(webDavResponse).onComplete(responseEndHandler);
   }
 }

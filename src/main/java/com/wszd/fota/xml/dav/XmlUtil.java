@@ -6,6 +6,7 @@ import com.wszd.fota.xml.win.Win32Prop;
 import io.vertx.core.impl.ConcurrentHashSet;
 
 import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -18,6 +19,9 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 import static javax.xml.bind.Marshaller.JAXB_FRAGMENT;
 
@@ -38,23 +42,15 @@ public class XmlUtil {
     });
   }
 
-  public static final JAXBContext contextx;
-
-  static {
-    loadClass.add(MultiStatus.class);
-    loadClass.add(Win32Prop.class);
-    loadClass.add(Propertyupdate.class);
-    loadClass.add(LockInfo.class);
-
-    try {
-      contextx = JAXBContext.newInstance(loadClass.toArray(new Class[0]));
-    } catch (JAXBException e) {
-      throw new RuntimeException("初始化 JAXBContext 失败", e);
-    }
-  }
-
   public static void main(String[] args) {
     t3();
+  }
+  public static final void t4(){
+    String xml="<!DOCTYPE a [\n" +
+      "<!ENTITY % name SYSTEM “file:///etc/passwd”>\n" +
+      "%name;\n" +
+      "]>";
+    System.out.println();
   }
 
   public static void t3() {
@@ -133,9 +129,13 @@ public class XmlUtil {
     try {
       JAXBContext context = getOrCreate(load);
       Unmarshaller unmarshaller = context.createUnmarshaller();
-      Object object = unmarshaller.unmarshal(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+      XMLInputFactory xif = XMLInputFactory.newFactory();
+      // 防止xml外部实体注入攻击
+      xif.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+      XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(xml));
+      Object object = unmarshaller.unmarshal(xsr);
       return object;
-    } catch (JAXBException e) {
+    } catch (JAXBException | XMLStreamException e) {
       throw new RuntimeException("error to unmarshal xml", e);
     }
   }

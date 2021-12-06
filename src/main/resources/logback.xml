@@ -88,6 +88,12 @@
 <!--  </logger>-->
 <!--    <logger name="com.wszd.fota.webdav" level="debug" additivity="true">-->
 <!--    </logger>-->
+<!--      <logger name="com.wszd.fota.webdav" level="debug" additivity="true">-->
+<!--      </logger>-->
+<!--  <logger name="com.wszd.fota.method.AbstractWebDavMethodWithResponse" level="debug" additivity="true">-->
+<!--  </logger>-->
+<!--        <logger name="com.wszd.fota.webdav.filesystem" level="debug" additivity="true">-->
+<!--        </logger>-->
 
 
 </configuration>

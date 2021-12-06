@@ -1,5 +1,6 @@
 package com.wszd.fota.webdav.core;
 
+import io.vertx.core.file.FileProps;
 import io.vertx.core.http.impl.MimeMapping;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +18,10 @@ import java.util.Optional;
  */
 @Data
 @Slf4j
-public class FileObject {
+public class FileObject implements Cloneable{
+
   private String webDavPath;
+  private String displayName;
   private boolean directory;
   private Date lastModified;
   private Date creationDate;
@@ -41,6 +44,7 @@ public class FileObject {
     FileObject fileObject=new FileObject();
     fileObject.setWebDavPath(webDavPath);
     fileObject.setExist(file.exists());
+    fileObject.setDisplayName(file.getName());
     try {
       fileObject.setMimeType(MimeMapping.getMimeTypeForFilename(file.getAbsolutePath()));
       fileObject.setContentType(Files.probeContentType(file.toPath()));
@@ -72,4 +76,47 @@ public class FileObject {
     return fileObject;
   }
 
+
+  public static FileObject fakeDirectory(String webDavPath,String displayName){
+    FileObject fileObject=new FileObject();
+    fileObject.setWebDavPath(webDavPath);
+    fileObject.setExist(true);
+    fileObject.setDisplayName(displayName);
+    fileObject.setDirectory(true);
+    fileObject.setLastModified(new Date());
+    fileObject.setCreationDate(new Date());
+    fileObject.setLastAccess(new Date());
+    fileObject.setWin32FileAttributes("");
+    fileObject.setWin32CreationTime(fileObject.getCreationDate());
+    fileObject.setWin32LastModifiedTime(fileObject.getLastModified());
+    fileObject.setWin32LastAccessTime(fileObject.getLastAccess());
+    return fileObject;
+  }
+
+
+  public static FileObject fakeFile(String webDavPath,String displayName,boolean directory,boolean exist){
+    FileObject fileObject=new FileObject();
+    fileObject.setWebDavPath(webDavPath);
+    fileObject.setExist(exist);
+    fileObject.setDisplayName(displayName);
+    fileObject.setDirectory(directory);
+    fileObject.setLastModified(new Date());
+    fileObject.setCreationDate(new Date());
+    fileObject.setLastAccess(new Date());
+    fileObject.setWin32FileAttributes("");
+    fileObject.setWin32CreationTime(fileObject.getCreationDate());
+    fileObject.setWin32LastModifiedTime(fileObject.getLastModified());
+    fileObject.setWin32LastAccessTime(fileObject.getLastAccess());
+    return fileObject;
+  }
+
+  @Override
+  public FileObject clone() {
+    try {
+      FileObject clone = (FileObject) super.clone();
+      return clone;
+    } catch (CloneNotSupportedException e) {
+      throw new AssertionError(e);
+    }
+  }
 }
